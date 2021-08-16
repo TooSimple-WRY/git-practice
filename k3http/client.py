@@ -5,8 +5,8 @@ import errno
 import logging
 import select
 import socket
+from . import stopwatch
 
-from pykit import stopwatch
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +45,7 @@ LINE_RECV_LENGTH = 1024 * 4
 
 class Client(object):
 
-    stopwatch_root_name = 'pykit.http.Client'
+    stopwatch_root_name = 'k3http.Client'
 
     def __init__(self, host, port, timeout=60,
                  stopwatch_kwargs=None, https_context=None):
@@ -168,7 +168,7 @@ class Client(object):
         bufs.extend(['', ''])
 
         with self.stopwatch.timer('send_header'):
-            self.sock.sendall('\r\n'.join(bufs))
+            self.sock.sendall(('\r\n'.join(bufs)).encode('utf-8'))
 
     def send_body(self, body):
 
@@ -179,7 +179,7 @@ class Client(object):
             if self.request_chunked_encoded:
                 body = '{0:x}\r\n{1}\r\n'.format(len(body), body)
 
-            self.sock.sendall(body)
+            self.sock.sendall(body.encode('utf-8'))
 
     def read_status(self, skip_100=True):
 
@@ -188,7 +188,7 @@ class Client(object):
 
         if self.recv_iter is None:
             self.recv_iter = _recv_loop(self.sock, self.timeout)
-            self.recv_iter.next()
+            next(self.recv_iter)
 
         # read until we get a non-100 response
         while True:
@@ -215,9 +215,7 @@ class Client(object):
     def read_headers(self):
 
         with self.stopwatch.timer('recv_header'):
-
             while True:
-
                 line = self._readline()
                 if line == '':
                     break
@@ -468,7 +466,7 @@ def _recv(sock, timeout, size):
     buf = ''
     for _ in range(2):
         try:
-            buf = sock.recv(size)
+            buf = (sock.recv(size)).decode('utf-8')
             break
         except socket.error as e:
             if len(e.args) <= 0 or e.args[0] != errno.EAGAIN:
