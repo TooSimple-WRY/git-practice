@@ -8,13 +8,14 @@ import ssl
 import threading
 import time
 import unittest
-from BaseHTTPServer import BaseHTTPRequestHandler
-from BaseHTTPServer import HTTPServer
+from http.server import BaseHTTPRequestHandler
+from http.server import HTTPServer
 
-from pykit import http
-from pykit import ututil
+import k3http
+import k3ut
 
-dd = ututil.dd
+
+dd = k3ut.dd
 
 
 HOST = '127.0.0.1'
@@ -56,14 +57,16 @@ class TestHttpClient(unittest.TestCase):
     request_body = {}
 
     def test_raise_connnect_error(self):
+        print('test_raise_connnect_error')
 
-        h = http.Client(HOST, PORT)
-        self.assertRaises(http.NotConnectedError, h.send_body, None)
+        h = k3http.Client(HOST, PORT)
+        self.assertRaises(k3http.NotConnectedError, h.send_body, None)
 
     def test_raise_line_too_long_error(self):
+        print('test_raise_line_too_long_error')
 
-        h = http.Client(HOST, PORT)
-        self.assertRaises(http.LineTooLongError,
+        h = k3http.Client(HOST, PORT)
+        self.assertRaises(k3http.LineTooLongError,
                           h.request, '/line_too_long')
 
     def test_raise_response_headers_error(self):
@@ -72,24 +75,27 @@ class TestHttpClient(unittest.TestCase):
             '/invalid_content_len',
             '/invalid_header',
         )
-        h = http.Client(HOST, PORT)
+        h = k3http.Client(HOST, PORT)
         for uri in cases:
-            self.assertRaises(http.HeadersError, h.request, uri)
+            self.assertRaises(k3http.HeadersError, h.request, uri)
 
     def test_raise_chunked_size_error(self):
+        print('test_raise_chunked_size_error')
 
-        h = http.Client(HOST, PORT)
+        h = k3http.Client(HOST, PORT)
         h.request('')
-        self.assertRaises(http.ChunkedSizeError, h.read_body, 10)
+        self.assertRaises(k3http.ChunkedSizeError, h.read_body, 10)
 
     def test_raise_response_not_ready_error(self):
+        print('test_raise_response_not_ready_error')
 
-        h = http.Client(HOST, PORT)
-        self.assertRaises(http.ResponseNotReadyError, h.read_response)
+        h = k3http.Client(HOST, PORT)
+        self.assertRaises(k3http.ResponseNotReadyError, h.read_response)
 
     def test_raise_socket_timeout(self):
+        print('test_raise_socket_timeout')
 
-        h = http.Client(HOST, PORT, 2)
+        h = k3http.Client(HOST, PORT, 2)
         self.assertRaises(socket.timeout, h.request, '')
 
     def test_raise_badstatus_line_error(self):
@@ -101,14 +107,15 @@ class TestHttpClient(unittest.TestCase):
             '/>999',
         )
 
-        h = http.Client(HOST, PORT)
+        h = k3http.Client(HOST, PORT)
         for uri in cases:
 
-            self.assertRaises(http.BadStatusLineError, h.request, uri)
+            self.assertRaises(k3http.BadStatusLineError, h.request, uri)
 
     def test_raise_socket_error(self):
+        print('test_raise_socket_error')
 
-        h = http.Client(HOST, PORT)
+        h = k3http.Client(HOST, PORT)
         h.request('/socket_error')
         self.assertRaises(socket.error, h.read_body, 10)
 
@@ -146,7 +153,7 @@ class TestHttpClient(unittest.TestCase):
             ('/get_30m_range', None, 'opq' * 10 * MB, (2 * MB, 25 * MB), False),
         )
 
-        h = http.Client(HOST, PORT)
+        h = k3http.Client(HOST, PORT)
         for uri, each_read_size, expected_res, content_range, chunked in cases:
             h.request(uri)
 
@@ -171,6 +178,7 @@ class TestHttpClient(unittest.TestCase):
             self.assertEqual(chunked, h.chunked)
 
     def test_status(self):
+        print('test_status')
 
         cases = (
             ('/get_200', 200),
@@ -179,7 +187,7 @@ class TestHttpClient(unittest.TestCase):
             ('/get_500', 500),
         )
 
-        h = http.Client(HOST, PORT)
+        h = k3http.Client(HOST, PORT)
         for uri, expected_status in cases:
             h.request(uri)
 
@@ -187,7 +195,7 @@ class TestHttpClient(unittest.TestCase):
 
     def test_request_chunked(self):
 
-        h = http.Client(HOST, PORT)
+        h = k3http.Client(HOST, PORT)
         h.send_request('', 'PUT', {'Transfer-Encoding': 'chunked'})
 
         cases = (
@@ -209,7 +217,7 @@ class TestHttpClient(unittest.TestCase):
             ('/header_3', {'host': 'example.com', 'b': 'bar', 'f': 'foo'}),
         )
 
-        h = http.Client(HOST, PORT)
+        h = k3http.Client(HOST, PORT)
         for uri, headers in cases:
             h.request(uri, headers=headers)
             time.sleep(0.1)
@@ -217,6 +225,7 @@ class TestHttpClient(unittest.TestCase):
             self.assertEqual(headers, self.request_headers)
 
     def test_response_headers(self):
+        print('test_response_headers')
 
         cases = (
             ('/header_res1', {'f': 'foo'}),
@@ -224,13 +233,14 @@ class TestHttpClient(unittest.TestCase):
             ('/header_res3', {'f': 'foo', 'b': 'bar', 't': 'too'}),
         )
 
-        h = http.Client(HOST, PORT)
+        h = k3http.Client(HOST, PORT)
         for uri, expected_headers in cases:
             h.request(uri)
 
             self.assertEqual(expected_headers, h.headers)
 
     def test_send_body(self):
+        print('test_send_body')
 
         cases = (
             ('/put_1b', 'a', {'Content-Length': 1}),
@@ -238,7 +248,7 @@ class TestHttpClient(unittest.TestCase):
             ('/put_30m', 'cde' * 10 * MB, {'Content-Length': 30 * MB}),
         )
 
-        h = http.Client(HOST, PORT)
+        h = k3http.Client(HOST, PORT)
         for uri, body, headers in cases:
             h.send_request(uri, method='PUT', headers=headers)
             h.send_body(body)
@@ -246,10 +256,12 @@ class TestHttpClient(unittest.TestCase):
             time.sleep(0.1)
 
             self.assertEqual(body, self.request_body)
+        
 
     def test_readlines(self):
+        print('test_readlines')
 
-        h = http.Client(HOST, PORT)
+        h = k3http.Client(HOST, PORT)
         h.request('')
 
         expected_body = ('a' * 65540 + '\r\n', 'bb\r\n', 'c' * 65540)
@@ -258,7 +270,7 @@ class TestHttpClient(unittest.TestCase):
 
     def test_readlines_delimiter(self):
 
-        h = http.Client(HOST, PORT)
+        h = k3http.Client(HOST, PORT)
         h.request('')
 
         expected_body = ('abcd\r', 'bcde\r', 'cdef\r')
@@ -267,7 +279,7 @@ class TestHttpClient(unittest.TestCase):
 
     def test_recving_server_close(self):
 
-        h = http.Client(HOST, PORT, 3)
+        h = k3http.Client(HOST, PORT, 3)
         succ = False
 
         try:
@@ -286,7 +298,7 @@ class TestHttpClient(unittest.TestCase):
         case = ({'content-length': '4'}, 'abcd')
         expected_headers, expected_body = case
 
-        h = http.Client(HOST, PORT, 1)
+        h = k3http.Client(HOST, PORT, 1)
         h.request('')
         body = h.read_body(1024)
 
@@ -298,7 +310,7 @@ class TestHttpClient(unittest.TestCase):
         case = ('/client_delay', {'Content-Length': 10}, 'abcde' * 2)
         uri, headers, body = case
 
-        h = http.Client(HOST, PORT, 3)
+        h = k3http.Client(HOST, PORT, 3)
         h.send_request(uri, method='PUT', headers=headers)
 
         while len(body) > 0:
@@ -310,7 +322,7 @@ class TestHttpClient(unittest.TestCase):
 
     def test_garbage_collector(self):
 
-        h = http.Client(HOST, PORT)
+        h = k3http.Client(HOST, PORT)
         h.request('/get_30m')
         h.read_body(None)
         del h
@@ -319,11 +331,12 @@ class TestHttpClient(unittest.TestCase):
         self.assertListEqual([], gc.garbage)
 
     def test_trace(self):
+        print('test_trace')
 
         class FakeErrorDuringHTTP(Exception):
             pass
 
-        h = http.Client(HOST, PORT)
+        h = k3http.Client(HOST, PORT)
         h.request('/get_10k')
         h.read_body(1)
         h.read_body(None)
@@ -358,14 +371,15 @@ class TestHttpClient(unittest.TestCase):
                           'recv_body',
                           'recv_body',
                           'exception',
-                          'pykit.http.Client'],
+                          'k3http.Client'],
                          names)
 
         dd('trace str:', h.get_trace_str())
 
     def test_trace_min_tracing_milliseconds(self):
+        print('test_trace_min_tracing_milliseconds')
 
-        h = http.Client(HOST, PORT, stopwatch_kwargs={
+        h = k3http.Client(HOST, PORT, stopwatch_kwargs={
                         'min_tracing_milliseconds': 1000})
         h.request('/get_10k')
         h.read_body(None)
@@ -386,7 +400,7 @@ class TestHttpClient(unittest.TestCase):
         )
 
         context = ssl._create_unverified_context()
-        cli = http.Client(HOST, PORT, https_context=context)
+        cli = k3http.Client(HOST, PORT, https_context=context)
         for uri, expected_res in cases:
             cli.request(uri)
             body = cli.read_body(None)
@@ -395,11 +409,12 @@ class TestHttpClient(unittest.TestCase):
             self.assertEqual(expected_res, body)
 
     def test_set_timeout(self):
+        print('test_set_timeout')
 
         uri, body, headers = ('/put_30m', 'cde' * 10 * MB, {'Content-Length': 30 * MB})
         kwargs = {'method': 'PUT', 'headers': headers}
 
-        h = http.Client(HOST, PORT)
+        h = k3http.Client(HOST, PORT)
 
         fail_timeout = 0.000001
         succ_timeout = 2
@@ -438,6 +453,7 @@ class TestHttpClient(unittest.TestCase):
         time.sleep(0.1)
 
     def tearDown(self):
+        print('tearDown')
 
         if self.http_server is not None:
             self.http_server.shutdown()
@@ -472,20 +488,20 @@ class TestHttpClient(unittest.TestCase):
 
             conn, _ = sock.accept()
             for i in range(3):
-                data = conn.recv(1024)
+                data = (conn.recv(1024)).decode('utf-8')
                 dd('recv data:' + data)
 
                 res = 'HTTP/1.1 100 CONTINUE\r\n\r\n'
-                conn.sendall(res)
+                conn.sendall(res.encode('utf-8'))
 
-            data = conn.recv(1024)
+            data = (conn.recv(1024)).decode('utf-8')
             dd('recv data:' + data)
             res = 'HTTP/1.1 200 OK\r\n\r\n'
-            conn.sendall(res)
+            conn.sendall(res.encode('utf-8'))
 
         else:
             conn, _ = sock.accept()
-            data = conn.recv(1024)
+            data = (conn.recv(1024)).decode('utf-8')
             dd('recv data:' + data)
             res = self.special_cases.get(self._testMethodName)
             if res is None:
@@ -494,7 +510,7 @@ class TestHttpClient(unittest.TestCase):
             sleep_time, each_send_size, content = res
             try:
                 while len(content) > 0:
-                    conn.sendall(content[:each_send_size])
+                    conn.sendall((content[:each_send_size]).encode('utf-8'))
                     content = content[each_send_size:]
                     time.sleep(sleep_time)
             except socket.error as e:
@@ -532,14 +548,14 @@ class Handle(BaseHTTPRequestHandler):
                             'Content-Length': 23 * MB + 1},
                            (10 * MB, 'opq' * 10 * MB)),
 
-        '/get_200': (200, {}, (0, '')),
-        '/get_304': (304, {}, (0, '')),
-        '/get_404': (404, {}, (0, '')),
-        '/get_500': (500, {}, (0, '')),
+        '/get_200': (200, {'content-length': 1}, (0, '')),
+        '/get_304': (304, {'content-length': 1}, (0, '')),
+        '/get_404': (404, {'content-length': 1}, (0, '')),
+        '/get_500': (500, {'content-length': 1}, (0, '')),
 
-        '/header_1': (200, {}, (0, '')),
-        '/header_2': (200, {}, (0, '')),
-        '/header_3': (200, {}, (0, '')),
+        '/header_1': (200, {'content-length': 1}, (0, '')),
+        '/header_2': (200, {'content-length': 1}, (0, '')),
+        '/header_3': (200, {'content-length': 1}, (0, '')),
 
         '/header_res1': (200, {'f': 'foo'}, (0, '')),
         '/header_res2': (200, {'f': 'foo', 'b': 'bar'}, (0, '')),
@@ -565,19 +581,19 @@ class Handle(BaseHTTPRequestHandler):
             if self.path == '/invalid_protocol':
                 protocol = 'foo'
             elif self.path == '/invalid_line':
-                self.wfile.write(self.protocol_version + '\r\n')
+                self.wfile.write((self.protocol_version + '\r\n').encode('utf-8'))
                 return
             else:
                 protocol = self.protocol_version
-            self.wfile.write("%s %d %s\r\n" %
-                             (protocol, code, message))
+            self.wfile.write(("%s %d %s\r\n" %
+                             (protocol, code, message)).encode('utf-8'))
             if self.path == '/invalid_header':
-                self.wfile.write('foo\r\n')
+                self.wfile.write(('foo\r\n').encode('utf-8'))
 
     def do_PUT(self):
 
         try:
-            length = int(self.headers.getheader('Content-Length'))
+            length = int(self.headers.get('Content-Length'))
         except (TypeError, ValueError) as e:
             dd(repr(e))
             return
@@ -587,9 +603,9 @@ class Handle(BaseHTTPRequestHandler):
 
         try:
             while read_bytes < length:
-                bufs += self.rfile.read(length - read_bytes)
+                bufs += (self.rfile.read(length - read_bytes)).decode('utf-8')
                 read_bytes = len(bufs)
-
+            
             TestHttpClient.request_body = bufs
             self.send_response(200)
             self.send_header('Content-Length', 0)
@@ -599,7 +615,7 @@ class Handle(BaseHTTPRequestHandler):
 
     def do_GET(self):
 
-        TestHttpClient.request_headers = self.headers.dict
+        TestHttpClient.request_headers = dict(self.headers)
 
         res = self.all_responses.get(self.path)
         if res is None:
@@ -632,11 +648,11 @@ class Handle(BaseHTTPRequestHandler):
                     ext = ';extname'
                 send_buf = '%x%s\r\n%s\r\n' % (len(send_buf), ext, send_buf)
 
-            self.wfile.write(send_buf)
+            self.wfile.write(send_buf.encode("utf-8"))
             data = data[each_send_size:]
 
         if 'Transfer-Encoding' in headers:
-            self.wfile.write('0\r\n\r\n')
+            self.wfile.write(('0\r\n\r\n').encode('utf-8'))
 
     def _get_body(self, headers, body):
 
